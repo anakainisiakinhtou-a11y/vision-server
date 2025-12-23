@@ -10,7 +10,7 @@ const HF_TOKEN = process.env.HF_TOKEN;
 
 async function queryImage(base64Image) {
   const response = await fetch(
-    "https://api-inference.huggingface.co/models/nlpconnect/vit-gpt2-image-captioning",
+    "https://api-inference.huggingface.co/models/Salesforce/blip-image-captioning-base",
     {
       method: "POST",
       headers: {
@@ -36,7 +36,7 @@ app.post("/analyze", async (req, res) => {
     // Αφαίρεση prefix από το base64
     const cleanBase64 = image.replace(/^data:image\/\w+;base64,/, "");
 
-    // Κλήση στο μοντέλο
+    // Κλήση στο BLIP‑BASE
     const result = await queryImage(cleanBase64);
 
     // Debug για να δούμε τι επιστρέφει το API
