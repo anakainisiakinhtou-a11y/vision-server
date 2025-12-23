@@ -9,16 +9,18 @@ app.use(cors());
 
 const HF_TOKEN = process.env.HF_TOKEN;
 
-async function queryImage(buffer) {
+async function queryImage(base64Image) {
   const response = await fetch(
     "https://api-inference.huggingface.co/models/Salesforce/blip-image-captioning-large",
     {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${HF_TOKEN}`,
-        "Content-Type": "application/octet-stream"
+        "Content-Type": "application/json"
       },
-      body: buffer
+      body: JSON.stringify({
+        inputs: base64Image
+      })
     }
   );
 
@@ -32,15 +34,12 @@ app.post("/analyze", async (req, res) => {
     const { image } = req.body;
     if (!image) return res.status(400).json({ error: "No image" });
 
-    const base64 = image.replace(/^data:image\/\w+;base64,/, "");
-    const buffer = Buffer.from(base64, "base64");
-
-    let result = await queryImage(buffer);
+    let result = await queryImage(image);
 
     if (result.error && result.error.includes("loading")) {
       console.log("⏳ Το μοντέλο φορτώνει... ξαναδοκιμή σε 2s");
       await new Promise(r => setTimeout(r, 2000));
-      result = await queryImage(buffer);
+      result = await queryImage(image);
     }
 
     if (Array.isArray(result) && result[0]?.generated_text) {
