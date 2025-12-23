@@ -29,7 +29,7 @@ app.post("/analyze", async (req, res) => {
 
     const base64 = cleanBase64(image);
 
-    // ΝΕΟ Vision API
+    // ΝΕΟ Vision API (σωστό endpoint)
     const response = await client.responses.create({
       model: "gpt-4o-mini-vision",
       input: [
@@ -46,13 +46,8 @@ app.post("/analyze", async (req, res) => {
       ]
     });
 
-    // Extract text
-    let caption = "Δεν βρέθηκε περιγραφή από το AI.";
-
-    const output = response.output_text;
-    if (output && output.length > 0) {
-      caption = output;
-    }
+    // Το Vision API επιστρέφει ΠΑΝΤΑ output_text
+    const caption = response.output_text || "Δεν βρέθηκε περιγραφή από το AI.";
 
     res.json({ caption });
 
