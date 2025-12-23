@@ -11,7 +11,7 @@ const HF_TOKEN = process.env.HF_TOKEN;
 
 async function queryImage(buffer) {
   const response = await fetch(
-    "https://api-inference.huggingface.co/models/nlpconnect/vit-gpt2-image-captioning",
+    "https://api-inference.huggingface.co/models/Salesforce/blip-image-captioning-large",
     {
       method: "POST",
       headers: {
@@ -48,7 +48,7 @@ app.post("/analyze", async (req, res) => {
       return res.json({ caption: result[0].generated_text });
     }
 
-    // Fallback: forced prompt
+    // Fallback
     return res.json({
       caption: "Η εικόνα περιέχει κάποιο αντικείμενο ή σκηνή, αλλά το μοντέλο δεν μπόρεσε να δώσει λεπτομερή περιγραφή."
     });
