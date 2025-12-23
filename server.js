@@ -29,16 +29,14 @@ app.post("/analyze", async (req, res) => {
 
     const base64 = cleanBase64(image);
 
-    const response = await client.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
+    // ΝΕΟ Vision API
+    const response = await client.responses.create({
+      model: "gpt-4o-mini-vision",
+      input: [
         {
           role: "user",
           content: [
-            {
-              type: "input_text",
-              text: "Περιέγραψε με απλά λόγια τι δείχνει η εικόνα."
-            },
+            { type: "text", text: "Περιέγραψε την εικόνα με απλά λόγια." },
             {
               type: "input_image",
               image_url: `data:image/jpeg;base64,${base64}`
@@ -48,14 +46,12 @@ app.post("/analyze", async (req, res) => {
       ]
     });
 
+    // Extract text
     let caption = "Δεν βρέθηκε περιγραφή από το AI.";
-    const msg = response.choices?.[0]?.message?.content;
 
-    if (typeof msg === "string") {
-      caption = msg;
-    } else if (Array.isArray(msg)) {
-      const textPart = msg.find(p => p.type === "output_text");
-      if (textPart?.text) caption = textPart.text;
+    const output = response.output_text;
+    if (output && output.length > 0) {
+      caption = output;
     }
 
     res.json({ caption });
