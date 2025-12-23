@@ -9,9 +9,16 @@ app.use(cors());
 
 const HF_TOKEN = process.env.HF_TOKEN;
 
-async function queryImage(buffer) {
+// Μοντέλα με σειρά προτεραιότητας
+const MODELS = [
+  "Salesforce/blip2-flan-t5-xl",
+  "Salesforce/blip-image-captioning-large",
+  "nlpconnect/vit-gpt2-image-captioning"
+];
+
+async function queryModel(model, buffer) {
   const response = await fetch(
-    "https://api-inference.huggingface.co/models/Salesforce/blip-image-captioning-large",
+    `https://api-inference.huggingface.co/models/${model}`,
     {
       method: "POST",
       headers: {
@@ -35,21 +42,30 @@ app.post("/analyze", async (req, res) => {
     const base64 = image.replace(/^data:image\/\w+;base64,/, "");
     const buffer = Buffer.from(base64, "base64");
 
-    let result = await queryImage(buffer);
+    // Δοκιμάζουμε τα μοντέλα ένα-ένα
+    for (const model of MODELS) {
+      console.log("🔍 Δοκιμή μοντέλου:", model);
 
-    // Αν το μοντέλο φορτώνει, περιμένουμε και ξαναδοκιμάζουμε
-    if (result.error && result.error.includes("loading")) {
-      console.log("⏳ Το μοντέλο φορτώνει... ξαναδοκιμή σε 3s");
-      await new Promise(r => setTimeout(r, 3000));
-      result = await queryImage(buffer);
+      let result = await queryModel(model, buffer);
+
+      // Αν το μοντέλο φορτώνει, περιμένουμε και ξαναδοκιμάζουμε
+      if (result.error && result.error.includes("loading")) {
+        console.log("⏳ Το μοντέλο φορτώνει... ξαναδοκιμή σε 3s");
+        await new Promise(r => setTimeout(r, 3000));
+        result = await queryModel(model, buffer);
+      }
+
+      // Αν υπάρχει caption
+      if (Array.isArray(result) && result[0]?.generated_text) {
+        console.log("✅ Επιτυχία με μοντέλο:", model);
+        return res.json({ caption: result[0].generated_text });
+      }
+
+      console.log("⚠ Αποτυχία μοντέλου:", model, "Απάντηση:", result);
     }
 
-    // BLIP always returns array with "generated_text"
-    if (Array.isArray(result) && result[0]?.generated_text) {
-      return res.json({ caption: result[0].generated_text });
-    }
-
-    console.log("⚠ Απάντηση HF:", result);
+    // Αν κανένα μοντέλο δεν δώσει caption
+    console.log("❌ Κανένα μοντέλο δεν έδωσε περιγραφή");
     return res.json({ caption: null });
 
   } catch (err) {
