@@ -3,7 +3,6 @@ import cors from "cors";
 import fetch from "node-fetch";
 
 const app = express();
-
 app.use(express.json({ limit: "10mb" }));
 app.use(cors());
 
@@ -11,7 +10,7 @@ const HF_TOKEN = process.env.HF_TOKEN;
 
 async function queryImage(base64Image) {
   const response = await fetch(
-    "https://api-inference.huggingface.co/models/Salesforce/blip-image-captioning-large",
+    "https://api-inference.huggingface.co/models/nlpconnect/vit-gpt2-image-captioning",
     {
       method: "POST",
       headers: {
@@ -28,35 +27,27 @@ async function queryImage(base64Image) {
 }
 
 app.post("/analyze", async (req, res) => {
-  console.log("📸 Λήφθηκε αίτημα από HTML");
-
   try {
     const { image } = req.body;
     if (!image) return res.status(400).json({ error: "No image" });
 
     let result = await queryImage(image);
 
-    if (result.error && result.error.includes("loading")) {
-      console.log("⏳ Το μοντέλο φορτώνει... ξαναδοκιμή σε 2s");
-      await new Promise(r => setTimeout(r, 2000));
-      result = await queryImage(image);
-    }
-
     if (Array.isArray(result) && result[0]?.generated_text) {
       return res.json({ caption: result[0].generated_text });
     }
 
     return res.json({
-      caption: "Η εικόνα περιέχει κάποιο αντικείμενο ή σκηνή, αλλά το μοντέλο δεν μπόρεσε να δώσει λεπτομερή περιγραφή."
+      caption: "Δεν μπόρεσα να περιγράψω την εικόνα."
     });
 
   } catch (err) {
     console.error("❌ Σφάλμα:", err);
     return res.status(500).json({
-      caption: "Παρουσιάστηκε σφάλμα στον διακομιστή."
+      caption: "Σφάλμα στον διακομιστή."
     });
   }
 });
 
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => console.log("Vision Server running on port " + PORT));
+app.listen(PORT, () => console.log("Server running on port " + PORT));
