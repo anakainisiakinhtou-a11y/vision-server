@@ -34,7 +34,7 @@ app.post("/analyze", async (req, res) => {
 
     // OpenAI Vision request
     const response = await client.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-4o-mini-vision",
       messages: [
         {
           role: "user",
@@ -49,9 +49,16 @@ app.post("/analyze", async (req, res) => {
       ]
     });
 
-    const caption =
-      response.choices?.[0]?.message?.content ||
-      "Δεν βρέθηκε περιγραφή από το AI.";
+    // Extract caption safely
+    let caption = "Δεν βρέθηκε περιγραφή από το AI.";
+    const msg = response.choices?.[0]?.message?.content;
+
+    if (typeof msg === "string") {
+      caption = msg;
+    } else if (Array.isArray(msg)) {
+      const textPart = msg.find(p => p.type === "output_text");
+      if (textPart?.text) caption = textPart.text;
+    }
 
     res.json({ caption });
 
