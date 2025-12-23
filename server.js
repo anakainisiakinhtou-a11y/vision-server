@@ -29,14 +29,13 @@ app.post("/analyze", async (req, res) => {
 
     const base64 = cleanBase64(image);
 
-    // ΝΕΟ Vision API (σωστό endpoint)
-    const response = await client.responses.create({
-      model: "gpt-4o-mini-vision",
-      input: [
+    const response = await client.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
         {
           role: "user",
           content: [
-            { type: "text", text: "Περιέγραψε την εικόνα με απλά λόγια." },
+            { type: "input_text", text: "Περιέγραψε την εικόνα." },
             {
               type: "input_image",
               image_url: `data:image/jpeg;base64,${base64}`
@@ -46,8 +45,7 @@ app.post("/analyze", async (req, res) => {
       ]
     });
 
-    // Το Vision API επιστρέφει ΠΑΝΤΑ output_text
-    const caption = response.output_text || "Δεν βρέθηκε περιγραφή από το AI.";
+    const caption = response.choices?.[0]?.message?.content || "Δεν βρέθηκε περιγραφή";
 
     res.json({ caption });
 
