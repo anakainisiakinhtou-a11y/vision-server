@@ -34,7 +34,7 @@ app.post("/analyze", async (req, res) => {
 
     // OpenAI Vision request
     const response = await client.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-4o",
       messages: [
         {
           role: "user",
@@ -49,9 +49,12 @@ app.post("/analyze", async (req, res) => {
       ]
     });
 
-    const caption = response.choices[0].message.content;
+    const caption =
+      response.choices?.[0]?.message?.content ||
+      "Δεν βρέθηκε περιγραφή από το AI.";
 
     res.json({ caption });
+
   } catch (error) {
     console.error("OpenAI Error:", error);
     res.status(500).json({ error: "Σφάλμα στον server." });
