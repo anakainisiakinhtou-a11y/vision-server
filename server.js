@@ -1,24 +1,13 @@
-// server.js
+// server.js (FREE VERSION - HuggingFace)
 import express from "express";
 import cors from "cors";
-import { OpenAI } from "openai";
+import fetch from "node-fetch";
 
 const app = express();
 app.use(express.json({ limit: "10mb" }));
 app.use(cors());
 
-app.get("/", (req, res) => {
-  res.send("OpenAI Vision Server is running");
-});
-
-const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-});
-
-function cleanBase64(dataUrl) {
-  const matches = dataUrl.match(/^data:(.+);base64,(.+)$/);
-  return matches ? matches[2] : dataUrl;
-}
+const HF_TOKEN = process.env.HF_TOKEN; // ΔΩΡΕΑΝ token από HuggingFace
 
 app.post("/analyze", async (req, res) => {
   try {
@@ -27,46 +16,38 @@ app.post("/analyze", async (req, res) => {
       return res.status(400).json({ error: "Δεν στάλθηκε εικόνα." });
     }
 
-    const base64 = cleanBase64(image);
+    // Καθαρίζουμε το base64
+    const base64 = image.replace(/^data:image\/\w+;base64,/, "");
+    const buffer = Buffer.from(base64, "base64");
 
-    const response = await client.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        {
-          role: "user",
-          content: [
-            {
-              type: "text",
-              text: "Περιέγραψε με απλά λόγια τι δείχνει η εικόνα."
-            },
-            {
-              type: "image_url",
-              image_url: {
-                url: `data:image/jpeg;base64,${base64}`
-              }
-            }
-          ]
-        }
-      ]
-    });
+    // Κλήση στο HuggingFace Vision Model
+    const response = await fetch(
+      "https://api-inference.huggingface.co/models/nlpconnect/vit-gpt2-image-captioning",
+      {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${HF_TOKEN}`,
+          "Content-Type": "application/octet-stream"
+        },
+        body: buffer
+      }
+    );
+
+    const result = await response.json();
 
     let caption = "Δεν βρέθηκε περιγραφή";
 
-    const msg = response.choices?.[0]?.message?.content;
-
-    if (typeof msg === "string") {
-      caption = msg;
-    } else if (Array.isArray(msg)) {
-      const textPart = msg.find(p => p.type === "text");
-      if (textPart?.text) caption = textPart.text;
+    if (Array.isArray(result) && result[0]?.generated_text) {
+      caption = result[0].generated_text;
     }
 
     res.json({ caption });
+
   } catch (error) {
-    console.error("OpenAI Error:", error);
+    console.error("HF Error:", error);
     res.status(500).json({ error: "Σφάλμα στον server." });
   }
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log("Server running on port " + PORT));
+app.listen(PORT, () => console.log("FREE Vision Server running on port " + PORT));
