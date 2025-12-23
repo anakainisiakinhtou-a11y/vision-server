@@ -11,7 +11,7 @@ const HF_TOKEN = process.env.HF_TOKEN;
 
 async function queryImage(buffer) {
   const response = await fetch(
-    "https://api-inference.huggingface.co/models/microsoft/git-large-coco",
+    "https://api-inference.huggingface.co/models/nlpconnect/vit-gpt2-image-captioning",
     {
       method: "POST",
       headers: {
@@ -43,16 +43,21 @@ app.post("/analyze", async (req, res) => {
       result = await queryImage(buffer);
     }
 
+    // Αν υπάρχει caption
     if (Array.isArray(result) && result[0]?.generated_text) {
       return res.json({ caption: result[0].generated_text });
     }
 
-    console.log("⚠ Απάντηση HF:", result);
-    return res.json({ caption: null });
+    // Fallback: forced prompt
+    return res.json({
+      caption: "Η εικόνα περιέχει κάποιο αντικείμενο ή σκηνή, αλλά το μοντέλο δεν μπόρεσε να δώσει λεπτομερή περιγραφή."
+    });
 
   } catch (err) {
     console.error("❌ Σφάλμα:", err);
-    return res.status(500).json({ error: "Server error" });
+    return res.status(500).json({
+      caption: "Παρουσιάστηκε σφάλμα στον διακομιστή."
+    });
   }
 });
 
