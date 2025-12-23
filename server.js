@@ -11,7 +11,7 @@ const HF_TOKEN = process.env.HF_TOKEN;
 
 async function queryImage(buffer) {
   const response = await fetch(
-    "https://api-inference.huggingface.co/models/Salesforce/blip2-flan-t5-xl",
+    "https://api-inference.huggingface.co/models/Salesforce/blip-image-captioning-large",
     {
       method: "POST",
       headers: {
@@ -44,7 +44,7 @@ app.post("/analyze", async (req, res) => {
       result = await queryImage(buffer);
     }
 
-    // BLIP2 always returns array with "generated_text"
+    // BLIP always returns array with "generated_text"
     if (Array.isArray(result) && result[0]?.generated_text) {
       return res.json({ caption: result[0].generated_text });
     }
