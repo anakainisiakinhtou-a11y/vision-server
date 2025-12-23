@@ -1,67 +1,62 @@
-// server.js (FREE VERSION - HuggingFace)
 import express from "express";
 import cors from "cors";
 import fetch from "node-fetch";
 
 const app = express();
 
-// Επιτρέπουμε μεγάλα JSON (μέχρι 10MB)
 app.use(express.json({ limit: "10mb" }));
+app.use(cors());
 
-// Πλήρες CORS για να δέχεται αιτήματα από κινητά & HTTPS sites
-app.use(cors({
-  origin: "*",
-  methods: ["POST", "GET", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"]
-}));
+const HF_TOKEN = process.env.HF_TOKEN;
 
-const HF_TOKEN = process.env.HF_TOKEN; // ΔΩΡΕΑΝ token από HuggingFace
+async function queryImage(buffer) {
+  const response = await fetch(
+    "https://api-inference.huggingface.co/models/nlpconnect/vit-gpt2-image-captioning",
+    {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${HF_TOKEN}`,
+        "Content-Type": "application/octet-stream"
+      },
+      body: buffer
+    }
+  );
+
+  return await response.json();
+}
 
 app.post("/analyze", async (req, res) => {
-
-  // Log για να δούμε αν φτάνει το αίτημα
-  console.log("📸 Λήφθηκε αίτημα από HTML σελίδα");
+  console.log("📸 Λήφθηκε αίτημα από HTML");
 
   try {
     const { image } = req.body;
+    if (!image) return res.status(400).json({ error: "No image" });
 
-    if (!image) {
-      return res.status(400).json({ error: "Δεν στάλθηκε εικόνα." });
-    }
-
-    // Αφαιρούμε το header του Base64
     const base64 = image.replace(/^data:image\/\w+;base64,/, "");
     const buffer = Buffer.from(base64, "base64");
 
-    // Κλήση στο HuggingFace Vision Model
-    const response = await fetch(
-      "https://api-inference.huggingface.co/models/nlpconnect/vit-gpt2-image-captioning",
-      {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${HF_TOKEN}`,
-          "Content-Type": "application/octet-stream"
-        },
-        body: buffer
-      }
-    );
+    let result = await queryImage(buffer);
 
-    const result = await response.json();
-
-    let caption = "Δεν βρέθηκε περιγραφή";
-
-    if (Array.isArray(result) && result[0]?.generated_text) {
-      caption = result[0].generated_text;
+    // Αν το μοντέλο φορτώνει, περιμένουμε και ξαναδοκιμάζουμε
+    if (result.error && result.error.includes("loading")) {
+      console.log("⏳ Το μοντέλο φορτώνει... ξαναδοκιμή σε 3s");
+      await new Promise(r => setTimeout(r, 3000));
+      result = await queryImage(buffer);
     }
 
-    res.json({ caption });
+    // Αν υπάρχει caption
+    if (Array.isArray(result) && result[0]?.generated_text) {
+      return res.json({ caption: result[0].generated_text });
+    }
 
-  } catch (error) {
-    console.error("HF Error:", error);
-    res.status(500).json({ error: "Σφάλμα στον server." });
+    console.log("⚠ Απάντηση HF:", result);
+    return res.json({ caption: null });
+
+  } catch (err) {
+    console.error("❌ Σφάλμα:", err);
+    return res.status(500).json({ error: "Server error" });
   }
 });
 
-// Εκκίνηση server
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => console.log("FREE Vision Server running on port " + PORT));
