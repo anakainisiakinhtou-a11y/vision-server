@@ -43,12 +43,10 @@ app.post("/analyze", async (req, res) => {
       result = await queryImage(buffer);
     }
 
-    // Αν υπάρχει caption
     if (Array.isArray(result) && result[0]?.generated_text) {
       return res.json({ caption: result[0].generated_text });
     }
 
-    // Fallback
     return res.json({
       caption: "Η εικόνα περιέχει κάποιο αντικείμενο ή σκηνή, αλλά το μοντέλο δεν μπόρεσε να δώσει λεπτομερή περιγραφή."
     });
