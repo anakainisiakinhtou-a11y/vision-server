@@ -4,19 +4,28 @@ import cors from "cors";
 import fetch from "node-fetch";
 
 const app = express();
+
+// Επιτρέπουμε μεγάλα JSON (μέχρι 10MB)
 app.use(express.json({ limit: "10mb" }));
-app.use(cors());
+
+// Πλήρες CORS για να δέχεται αιτήματα από κινητά & HTTPS sites
+app.use(cors({
+  origin: "*",
+  methods: ["POST", "GET", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"]
+}));
 
 const HF_TOKEN = process.env.HF_TOKEN; // ΔΩΡΕΑΝ token από HuggingFace
 
 app.post("/analyze", async (req, res) => {
   try {
     const { image } = req.body;
+
     if (!image) {
       return res.status(400).json({ error: "Δεν στάλθηκε εικόνα." });
     }
 
-    // Καθαρίζουμε το base64
+    // Αφαιρούμε το header του Base64
     const base64 = image.replace(/^data:image\/\w+;base64,/, "");
     const buffer = Buffer.from(base64, "base64");
 
@@ -49,5 +58,6 @@ app.post("/analyze", async (req, res) => {
   }
 });
 
+// Εκκίνηση server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log("FREE Vision Server running on port " + PORT));
