@@ -7,17 +7,14 @@ const app = express();
 app.use(express.json({ limit: "10mb" }));
 app.use(cors());
 
-// Root route
 app.get("/", (req, res) => {
   res.send("OpenAI Vision Server is running");
 });
 
-// Initialize OpenAI client
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
-// Convert data URL (base64) to pure base64
 function cleanBase64(dataUrl) {
   const matches = dataUrl.match(/^data:(.+);base64,(.+)$/);
   return matches ? matches[2] : dataUrl;
@@ -32,9 +29,8 @@ app.post("/analyze", async (req, res) => {
 
     const base64 = cleanBase64(image);
 
-    // OpenAI Vision request
     const response = await client.chat.completions.create({
-      model: "gpt-4o-mini-vision",
+      model: "gpt-4o",
       messages: [
         {
           role: "user",
@@ -52,7 +48,6 @@ app.post("/analyze", async (req, res) => {
       ]
     });
 
-    // Extract caption safely
     let caption = "Δεν βρέθηκε περιγραφή από το AI.";
     const msg = response.choices?.[0]?.message?.content;
 
