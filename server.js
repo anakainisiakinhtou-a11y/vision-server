@@ -33,11 +33,14 @@ app.post("/analyze", async (req, res) => {
       return res.status(400).json({ error: "No image" });
     }
 
-    // Αφαίρεση prefix
+    // Αφαίρεση prefix από το base64
     const cleanBase64 = image.replace(/^data:image\/\w+;base64,/, "");
 
     // Κλήση στο μοντέλο
     const result = await queryImage(cleanBase64);
+
+    // Debug για να δούμε τι επιστρέφει το API
+    console.log("🔍 RAW RESULT:", result);
 
     // Έλεγχος για caption
     if (Array.isArray(result) && result[0]?.generated_text) {
