@@ -35,20 +35,33 @@ app.post("/analyze", async (req, res) => {
         {
           role: "user",
           content: [
-            { type: "input_text", text: "Περιέγραψε την εικόνα." },
             {
-              type: "input_image",
-              image_url: `data:image/jpeg;base64,${base64}`
+              type: "text",
+              text: "Περιέγραψε με απλά λόγια τι δείχνει η εικόνα."
+            },
+            {
+              type: "image_url",
+              image_url: {
+                url: `data:image/jpeg;base64,${base64}`
+              }
             }
           ]
         }
       ]
     });
 
-    const caption = response.choices?.[0]?.message?.content || "Δεν βρέθηκε περιγραφή";
+    let caption = "Δεν βρέθηκε περιγραφή";
+
+    const msg = response.choices?.[0]?.message?.content;
+
+    if (typeof msg === "string") {
+      caption = msg;
+    } else if (Array.isArray(msg)) {
+      const textPart = msg.find(p => p.type === "text");
+      if (textPart?.text) caption = textPart.text;
+    }
 
     res.json({ caption });
-
   } catch (error) {
     console.error("OpenAI Error:", error);
     res.status(500).json({ error: "Σφάλμα στον server." });
