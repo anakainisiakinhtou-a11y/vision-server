@@ -39,7 +39,10 @@ app.post("/analyze", async (req, res) => {
         {
           role: "user",
           content: [
-            { type: "input_text", text: "Περιέγραψε την εικόνα με ακρίβεια." },
+            {
+              type: "input_text",
+              text: "Περιέγραψε με απλά λόγια τι δείχνει η εικόνα."
+            },
             {
               type: "input_image",
               image_url: `data:image/jpeg;base64,${base64}`
